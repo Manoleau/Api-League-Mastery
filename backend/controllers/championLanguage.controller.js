@@ -1,0 +1,1 @@
+const ChampionLanguageModel = require("../models/championLanguage.model")
