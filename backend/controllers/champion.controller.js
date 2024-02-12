@@ -1,239 +1,458 @@
 const ChampionModel = require("../models/champion.model")
+const RoleModel = require("../models/role.model")
+const ChampionLanguageModel = require("../models/championLanguage.model")
+const LanguageModel = require("../models/language.model")
 
-function isInt(str) {
-    const num = Number(str);
-    return Number.isInteger(num);
+function isInt(value) {
+    var x;
+    return isNaN(value) ? !1 : (x = parseFloat(value), (0 | x) === x);
 }
 function isUrlOk(url) {
     try {
-      new URL(url);
-      return true; // La syntaxe de l'URL est correcte
+        new URL(url);
+        return true; // La syntaxe de l'URL est correcte
     } catch (e) {
-      return false; // L'URL est mal formée
+        return false; // L'URL est mal formée
     }
 }
-function isColorCodeOk(code) {
-    // Cette regex vérifie si le code commence par un "#" suivi de 3, 4, 6, ou 8 caractères hexadécimaux
-    const regex = /^#([0-9a-fA-F]{3}([0-9a-fA-F]{1})?|[0-9a-fA-F]{6}([0-9a-fA-F]{2})?)$/;
-    return regex.test(code);
-}
 
-module.exports.getChampionById = async (req, res) =>{
+module.exports.getChampionById = async (req, res) => {
     const id = req.params.id
-    if(!id){
-        res.status(400).json({ 
-            message:"paramètre manquant"
+    if (!id) {
+        res.status(400).json({
+            message: "paramètre manquant"
         })
+    } else if (req.query.language_code) {
+        const language_code = req.query.language_code;
+        try {
+            const language = await LanguageModel.findOne({ code: language_code }, 'name code');
+            if (!language) {
+                return res.status(400).json({
+                    message: "Langue non trouvée"
+                });
+            }
+
+            const championTranslation = await ChampionLanguageModel.findOne({
+                language: language._id,
+                champion: id
+            }, 'name name_alt title champion -_id')
+                .populate({
+                    path: 'champion',
+                    select: 'key image_icon image_splash image_load_screen roles',
+                    populate: {
+                        path: 'roles',
+                        select: '-createdAt -updatedAt -__v'
+                    }
+                });
+            if (!championTranslation) {
+                return res.status(400).json({
+                    message: "Champion non trouvé pour ce code de langue"
+                });
+            }
+
+            const { champion, name, name_alt, title, ...rest } = championTranslation.toObject();
+            const adjustedResponse = {
+                _id: champion._id,
+                name,
+                name_alt,
+                title,
+                language_code: language.code,
+                ...champion,
+                ...rest
+            };
+
+            res.status(200).json(adjustedResponse);
+        } catch (err) {
+            console.log(err);
+            res.status(500).json({
+                message: "Erreur serveur"
+            });
+        }
     } else {
-        try{
-            const champion = await ChampionModel.findById(id, 'key default_name default_name_alt default_title image_icon image_splash image_load_screen color')
-            if(champion != null){
+        try {
+            const champion = await ChampionModel.findById(id)
+                .select('key default_name default_name_alt default_title image_icon image_splash image_load_screen roles')
+                .populate('roles', '-createdAt -__v -updatedAt');
+            if (champion != null) {
                 res.status(200).json(champion)
             } else {
                 res.status(400).json({
-                    message:`Le champion id ${id} n'existe pas`
+                    message: `Le champion id ${id} n'existe pas`
                 })
             }
-        } catch(err){
+        } catch (err) {
             res.status(400).json({
-                message:`Le champion id ${id} n'existe pas`
+                message: `Le champion id ${id} n'existe pas`
             })
         }
-        
+
     }
 
 }
 module.exports.getChampionByKey = async (req, res) => {
-    const key = req.params.key
-    if(!key){
-        res.status(400).json({ 
-            message:"paramètre manquant"
-        })
-    } else if(!isInt(key)){
-        res.status(400).json({ 
-            message:"key n'est pas un entier"
-        })
+    const key = req.params.key;
+    if (!key) {
+        res.status(400).json({
+            message: "paramètre manquant"
+        });
+    } else if (!isInt(key)) {
+        res.status(400).json({
+            message: "key n'est pas un entier"
+        });
+    } else if (req.query.language_code) {
+        const language_code = req.query.language_code;
+        try {
+            const language = await LanguageModel.findOne({ code: language_code }, 'name code');
+            if (!language) {
+                return res.status(400).json({
+                    message: "Langue non trouvée"
+                });
+            }
+            const championTMP = await ChampionModel.findOne({ key: Number(key) })
+            if (!championTMP) {
+                return res.status(400).json({
+                    message: "Champion non trouvée"
+                });
+            }
+
+            const championTranslation = await ChampionLanguageModel.findOne({
+                language: language._id,
+                champion: championTMP._id
+            }, 'name name_alt title champion -_id')
+                .populate({
+                    path: 'champion',
+                    select: 'key image_icon image_splash image_load_screen roles',
+                    populate: {
+                        path: 'roles',
+                        select: '-createdAt -updatedAt -__v'
+                    }
+                });
+            if (!championTranslation) {
+                return res.status(400).json({
+                    message: "Champion non trouvé pour ce code de langue"
+                });
+            }
+
+            const { champion, name, name_alt, title, ...rest } = championTranslation.toObject();
+            const adjustedResponse = {
+                _id: champion._id,
+                name,
+                name_alt,
+                title,
+                language_code: language.code,
+                ...champion,
+                ...rest
+            };
+
+            res.status(200).json(adjustedResponse);
+        } catch (err) {
+            console.log(err);
+            res.status(500).json({
+                message: "Erreur serveur"
+            });
+        }
     } else {
-        const champion = await ChampionModel.findOne({ key: Number(key) },'key default_name default_name_alt default_title image_icon image_splash image_load_screen color')
-        if(champion != null){
-            res.status(200).json(champion)
+        const champion = await ChampionModel.findOne({ key: Number(key) })
+            .select('key default_name default_name_alt default_title image_icon image_splash image_load_screen roles')
+            .populate('roles', '-createdAt -updatedAt -__v');
+
+        if (champion) {
+            res.status(200).json(champion);
         } else {
             res.status(400).json({
-                message:`Le champion key ${key} n'existe pas`
-            })
+                message: `Le champion avec la clé ${key} n'existe pas`
+            });
         }
     }
-    
-}
+};
 module.exports.getChampionByDefaultName = async (req, res) => {
-    const name = req.params.name
-    if(!name){
-        res.status(400).json({ 
-            message:"paramètre manquant"
+    const default_name = req.params.name
+    if (!default_name) {
+        res.status(400).json({
+            message: "paramètre manquant"
         })
+    } else if (req.query.language_code) {
+        const language_code = req.query.language_code
+        try {
+            const language = await LanguageModel.findOne({ code: language_code }, 'name code');
+            if (!language) {
+                return res.status(400).json({
+                    message: "Langue non trouvée"
+                });
+            }
+            const championTMP = await ChampionModel.findOne({ default_name: default_name })
+            if (!championTMP) {
+                return res.status(400).json({
+                    message: "Champion non trouvée"
+                });
+            }
+
+            const championTranslation = await ChampionLanguageModel.findOne({
+                language: language._id,
+                champion: championTMP._id
+            }, 'name name_alt title champion -_id')
+                .populate({
+                    path: 'champion',
+                    select: 'key image_icon image_splash image_load_screen roles',
+                    populate: {
+                        path: 'roles',
+                        select: '-createdAt -updatedAt -__v'
+                    }
+                });
+            if (!championTranslation) {
+                return res.status(400).json({
+                    message: "Champion non trouvé pour ce code de langue"
+                });
+            }
+
+            const { champion, name, name_alt, title, ...rest } = championTranslation.toObject();
+            console.log(champion);
+            const adjustedResponse = {
+                _id: champion._id,
+                name,
+                name_alt,
+                title,
+                language_code: language.code,
+                ...champion,
+                ...rest
+            };
+
+            res.status(200).json(adjustedResponse);
+        } catch (err) {
+            console.log(err);
+            res.status(500).json({
+                message: "Erreur serveur"
+            });
+        }
     } else {
-        const champion = await ChampionModel.findOne({ default_name: name },'key default_name default_name_alt default_title image_icon image_splash image_load_screen color')
-        if(champion != null){
+        const champion = await ChampionModel.findOne({ default_name: default_name })
+            .select('key default_name default_name_alt default_title image_icon image_splash image_load_screen roles')
+            .populate('roles', '-createdAt -__v -updatedAt');
+        if (champion != null) {
             res.status(200).json(champion)
         } else {
             res.status(400).json({
-                message:`Le champion ${name} n'existe pas`
+                message: `Le champion ${default_name} n'existe pas`
             })
         }
     }
-    
 }
 module.exports.getChampions = async (req, res) => {
-    const champions = await ChampionModel.find({},'key default_name default_name_alt default_title image_icon image_splash image_load_screen color')
-    res.status(200).json(champions)
+    const language_code = req.query.language_code
+    if (language_code) {
+        try {
+            const language = await LanguageModel.findOne({ code: language_code }, 'name code')
+            if (!language) {
+                return res.status(400).json({
+                    message: "Langue non trouvée"
+                });
+            }
+            const championTranslations = await ChampionLanguageModel.find({ language: language._id }, 'name name_alt title champion -_id')
+                .populate({
+                    path: 'champion',
+                    select: 'key image_icon image_splash image_load_screen roles',
+                    populate: {
+                        path: 'roles',
+                        select: '-createdAt -updatedAt -__v'
+                    }
+                });
+            const adjustedResponse = championTranslations.map(ct => {
+                const { champion, name, name_alt, title, _id, ...rest } = ct.toObject();
+                return {
+                    _id: champion._id,
+                    name,
+                    name_alt,
+                    title,
+                    language_code: language.code,
+                    ...champion,
+                    ...rest
+                };
+            });
+            res.status(200).json(adjustedResponse);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({
+                message: "Erreur serveur"
+            });
+        }
+    } else {
+        const champions = await ChampionModel.find({})
+            .select('key default_name default_name_alt default_title image_icon image_splash image_load_screen roles')
+            .populate('roles', '-createdAt -__v -updatedAt');
+        res.status(200).json(champions)
+    }
+
 }
 module.exports.addChampion = async (req, res) => {
-    // console.log(req.body);
+    console.log(req.body);
     // console.log(!req.body.key && !req.body.default_name && !req.body.default_name_alt && !req.body.image_icon && !req.body.image_splash && !req.body.image_load_screen && !req.body.default_title && !req.body.color);
-    if(!req.body.key || !req.body.default_name || !req.body.default_name_alt || !req.body.image_icon || !req.body.image_splash || !req.body.image_load_screen || !req.body.default_title || !req.body.color){
-        res.status(400).json({ 
-            message:"données manquantes"
+    if (!req.body.key || !req.body.default_name || !req.body.default_name_alt || !req.body.image_icon || !req.body.image_splash || !req.body.image_load_screen || !req.body.default_title) {
+        res.status(400).json({
+            message: "données manquantes"
         })
-    } else if(!isInt(req.body.key)){
-        res.status(400).json({ 
-            message:"key n'est pas un entier."
+    } else if (!isInt(req.body.key)) {
+        res.status(400).json({
+            message: "key n'est pas un entier."
         })
-    } else if(!isUrlOk(req.body.image_icon) || (!req.body.image_icon.toLowerCase().includes("png") && !req.body.image_icon.toLowerCase().includes("jpg"))){
-        res.status(400).json({ 
-            message:"image_icon n'est pas une image valide"
+    } else if (!isUrlOk(req.body.image_icon) || (!req.body.image_icon.toLowerCase().includes("png") && !req.body.image_icon.toLowerCase().includes("jpg"))) {
+        res.status(400).json({
+            message: "image_icon n'est pas une image valide"
         })
-    } else if(!isUrlOk(req.body.image_splash) || (!req.body.image_splash.toLowerCase().includes("png") && !req.body.image_splash.toLowerCase().includes("jpg"))){
-        res.status(400).json({ 
-            message:"image_splash n'est pas une image valide"
+    } else if (!isUrlOk(req.body.image_splash) || (!req.body.image_splash.toLowerCase().includes("png") && !req.body.image_splash.toLowerCase().includes("jpg"))) {
+        res.status(400).json({
+            message: "image_splash n'est pas une image valide"
         })
-    } else if(!isUrlOk(req.body.image_load_screen) || (!req.body.image_load_screen.toLowerCase().includes("png") && !req.body.image_load_screen.toLowerCase().includes("jpg"))){
-        res.status(400).json({ 
-            message:"image_load_screen n'est pas une image valide"
-        })
-    } else if(req.body.color.length != 7 || !isColorCodeOk(req.body.color)){
-        res.status(400).json({ 
-            message:"color n'est pas une couleur valide"
+    } else if (!isUrlOk(req.body.image_load_screen) || (!req.body.image_load_screen.toLowerCase().includes("png") && !req.body.image_load_screen.toLowerCase().includes("jpg"))) {
+        res.status(400).json({
+            message: "image_load_screen n'est pas une image valide"
         })
     } else {
-        try{
+        try {
             const champion = await ChampionModel.create({
-                key : Number(req.body.key),
-                default_name : req.body.default_name,
-                default_name_alt : req.body.default_name_alt,
-                default_title : req.body.default_title,
-                image_icon : req.body.image_icon,
-                image_splash : req.body.image_splash,
-                image_load_screen : req.body.image_load_screen,
-                color : req.body.color,
+                key: Number(req.body.key),
+                default_name: req.body.default_name,
+                default_name_alt: req.body.default_name_alt,
+                default_title: req.body.default_title,
+                image_icon: req.body.image_icon,
+                image_splash: req.body.image_splash,
+                image_load_screen: req.body.image_load_screen,
             })
             res.status(200).json(champion)
-        } catch(err){
+        } catch (err) {
             console.log(err);
-            if(err.toString().includes("MongoServerError")){
+            if (err.toString().includes("MongoServerError")) {
                 res.status(400).json({
-                    message:"Vous avez tenté de mettre une valeur qui existe déjà. Champion non enregistré"
+                    message: "Vous avez tenté de mettre une valeur qui existe déjà. Champion non enregistré"
                 })
             } else {
                 res.status(400).json({
-                    message:"Une erreur est survenue"
+                    message: "Une erreur est survenue"
                 })
             }
         }
     }
 }
-module.exports.updateChampionById = async (req,res) =>{
+module.exports.updateChampionById = async (req, res) => {
     const id = req.params.id
-    if(!id){
-        res.status(400).json({ 
-            message:"paramètre manquant"
+    if (!id) {
+        res.status(400).json({
+            message: "paramètre manquant"
         })
     } else {
-        try{
+        try {
             const champion = await ChampionModel.findById(id)
-            if(champion != null){
-                if(req.body.key && !isInt(req.body.key)){
+            if (champion != null) {
+                if (req.body.key && !isInt(req.body.key)) {
                     res.status(400).json({
-                        message:`La key du champion n'est pas un entier`
+                        message: `La key du champion n'est pas un entier`
                     })
-                } else if (req.body.image_icon && (!isUrlOk(req.body.image_icon) || (!req.body.image_icon.toLowerCase().includes("png") && !req.body.image_icon.toLowerCase().includes("jpg")))){
-                    res.status(400).json({ 
-                        message:"image_icon n'est pas une image valide"
+                } else if (req.body.image_icon && (!isUrlOk(req.body.image_icon) || (!req.body.image_icon.toLowerCase().includes("png") && !req.body.image_icon.toLowerCase().includes("jpg")))) {
+                    res.status(400).json({
+                        message: "image_icon n'est pas une image valide"
                     })
-                } else if (req.body.image_splash && (!isUrlOk(req.body.image_splash) || (!req.body.image_splash.toLowerCase().includes("png") && !req.body.image_splash.toLowerCase().includes("jpg")))){
-                    res.status(400).json({ 
-                        message:"image_splash n'est pas une image valide"
+                } else if (req.body.image_splash && (!isUrlOk(req.body.image_splash) || (!req.body.image_splash.toLowerCase().includes("png") && !req.body.image_splash.toLowerCase().includes("jpg")))) {
+                    res.status(400).json({
+                        message: "image_splash n'est pas une image valide"
                     })
-                } else if(req.body.image_load_screen && (!isUrlOk(req.body.image_load_screen) || (!req.body.image_load_screen.toLowerCase().includes("png") && !req.body.image_load_screen.toLowerCase().includes("jpg")))){
-                    res.status(400).json({ 
-                        message:"image_load_screen n'est pas une image valide"
-                    })
-                } else if (req.body.color && (req.body.color.length != 7 || !isColorCodeOk(req.body.color))){
-                    res.status(400).json({ 
-                        message:"color n'est pas une couleur valide"
+                } else if (req.body.image_load_screen && (!isUrlOk(req.body.image_load_screen) || (!req.body.image_load_screen.toLowerCase().includes("png") && !req.body.image_load_screen.toLowerCase().includes("jpg")))) {
+                    res.status(400).json({
+                        message: "image_load_screen n'est pas une image valide"
                     })
                 } else {
                     try {
                         const updateChampion = await ChampionModel.findByIdAndUpdate(
                             champion,
                             req.body,
-                            {new:true}
+                            { new: true }
                         )
                         res.status(200).json(updateChampion);
-                    } catch(err){
+                    } catch (err) {
                         console.error(err);
-                        res.status(400).json({ 
-                            message:"Vous avez tenté de mettre une valeur qui existe déjà. Champion pas mise à jour"
+                        res.status(400).json({
+                            message: "Vous avez tenté de mettre une valeur qui existe déjà. Champion pas mise à jour"
                         })
                     }
-                    
+
                 }
             } else {
                 res.status(400).json({
-                    message:`Le champion id ${id} n'existe pas`
+                    message: `Le champion id ${id} n'existe pas`
                 })
             }
-        } catch(err){
+        } catch (err) {
             res.status(400).json({
-                message:`Le champion id ${id} n'existe pas`
+                message: `Le champion id ${id} n'existe pas`
             })
         }
     }
 }
-module.exports.deleteChampionById = async (req, res) => {
-    const id = req.params.id;
-    if(!id){
-        res.status(400).json({ 
-            message:"paramètre manquant"
+// module.exports.deleteChampionById = async (req, res) => {
+//     const id = req.params.id;
+//     if (!id) {
+//         res.status(400).json({
+//             message: "paramètre manquant"
+//         })
+//     } else {
+//         try {
+//             const test = await ChampionModel.deleteOne({ '_id': id })
+//             res.status(200).json(test)
+//         } catch (err) {
+//             res.status(400).json({
+//                 message: `Le champion id ${id} n'existe pas`
+//             })
+//         }
+//     }
+// }
+// module.exports.deleteChampionByKey = async (req, res) => {
+//     const key = req.params.key;
+//     if (!key) {
+//         res.status(400).json({
+//             message: "paramètre manquant"
+//         })
+//     } else {
+//         try {
+//             const test = await ChampionModel.deleteOne({ 'key': key })
+//             res.status(200).json(test)
+//         } catch (err) {
+//             res.status(400).json({
+//                 message: `Le champion key ${key} n'existe pas`
+//             })
+//         }
+//     }
+// }
+module.exports.addRole = async (req, res) => {
+    if (!req.params.id || !req.body.role) {
+        res.status(400).json({
+            message: "paramètre manquant"
         })
     } else {
-        try{
-            const test = await ChampionModel.deleteOne({'_id':id})
-            res.status(200).json(test)
-        } catch(err){
-            res.status(400).json({
-                message:`Le champion id ${id} n'existe pas`
-            })
+        try {
+            const language = await RoleModel.findById(req.body.role);
+            if (!language) {
+                return res.status(400).send({ message: "Language pas trouvé" });
+            }
+        } catch (err) {
+            return res.status(400).send({ message: "Language pas trouvé" })
+        }
+        try {
+            const updateRole = await ChampionModel.findByIdAndUpdate(
+                req.params.id,
+                { $addToSet: { roles: req.body.role } },
+                { new: true }
+            )
+            res.status(200).json(updateRole)
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ message: err })
         }
     }
 }
-module.exports.deleteChampionByKey = async (req, res) => {
-    const key = req.params.key;
-    if(!key){
-        res.status(400).json({ 
-            message:"paramètre manquant"
-        })
-    } else {
-        try{
-            const test = await ChampionModel.deleteOne({'key':key})
-            res.status(200).json(test)
-        } catch(err){
-            res.status(400).json({
-                message:`Le champion key ${key} n'existe pas`
-            })
-        }
-    }
-}
-
-module.exports.getRoles = async (req, res) => {
-    
-}
+// module.exports.tkt = async (req, res) => {
+//     try {
+//         await ChampionLanguageModel.deleteMany({});
+//         await ChampionModel.deleteMany({});
+//         console.log('Collection vidée avec succès.');
+//     } catch (err) {
+//         console.log('Erreur lors de la suppression des documents:', err);
+//     }
+// }
