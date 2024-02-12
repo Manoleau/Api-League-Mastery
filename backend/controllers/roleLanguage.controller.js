@@ -99,6 +99,3 @@ module.exports.updateRoleLanguage = async (req, res) => {
         
     }
 }
-module.exports.getRoleLanguage = async (req, res) => {
-    
-}
