@@ -3,6 +3,8 @@ const RoleModel = require("../models/role.model")
 const ChampionLanguageModel = require("../models/championLanguage.model")
 const LanguageModel = require("../models/language.model")
 
+
+
 function isInt(value) {
     var x;
     return isNaN(value) ? !1 : (x = parseFloat(value), (0 | x) === x);
@@ -15,7 +17,6 @@ function isUrlOk(url) {
         return false; // L'URL est mal formée
     }
 }
-
 module.exports.getChampionById = async (req, res) => {
     const id = req.params.id
     if (!id) {
@@ -35,10 +36,10 @@ module.exports.getChampionById = async (req, res) => {
             const championTranslation = await ChampionLanguageModel.findOne({
                 language: language._id,
                 champion: id
-            }, 'name name_alt title champion -_id')
+            }, 'name title champion -_id')
                 .populate({
                     path: 'champion',
-                    select: 'key image_icon image_splash image_load_screen roles',
+                    select: 'key name_id image_icon image_splash image_load_screen roles',
                     populate: {
                         path: 'roles',
                         select: '-createdAt -updatedAt -__v'
@@ -46,15 +47,14 @@ module.exports.getChampionById = async (req, res) => {
                 });
             if (!championTranslation) {
                 return res.status(400).json({
-                    message: "Champion non trouvé pour ce code de langue"
+                    message: "Champion non trouvé"
                 });
             }
 
-            const { champion, name, name_alt, title, ...rest } = championTranslation.toObject();
+            const { champion, name, title, ...rest } = championTranslation.toObject();
             const adjustedResponse = {
                 _id: champion._id,
                 name,
-                name_alt,
                 title,
                 language_code: language.code,
                 ...champion,
@@ -71,7 +71,7 @@ module.exports.getChampionById = async (req, res) => {
     } else {
         try {
             const champion = await ChampionModel.findById(id)
-                .select('key default_name default_name_alt default_title image_icon image_splash image_load_screen roles')
+                .select('key default_name name_id default_title image_icon image_splash image_load_screen roles')
                 .populate('roles', '-createdAt -__v -updatedAt');
             if (champion != null) {
                 res.status(200).json(champion)
@@ -118,10 +118,10 @@ module.exports.getChampionByKey = async (req, res) => {
             const championTranslation = await ChampionLanguageModel.findOne({
                 language: language._id,
                 champion: championTMP._id
-            }, 'name name_alt title champion -_id')
+            }, 'name title champion -_id')
                 .populate({
                     path: 'champion',
-                    select: 'key image_icon image_splash image_load_screen roles',
+                    select: 'key name_id image_icon image_splash image_load_screen roles',
                     populate: {
                         path: 'roles',
                         select: '-createdAt -updatedAt -__v'
@@ -133,11 +133,10 @@ module.exports.getChampionByKey = async (req, res) => {
                 });
             }
 
-            const { champion, name, name_alt, title, ...rest } = championTranslation.toObject();
+            const { champion, name, name_id, title, ...rest } = championTranslation.toObject();
             const adjustedResponse = {
                 _id: champion._id,
                 name,
-                name_alt,
                 title,
                 language_code: language.code,
                 ...champion,
@@ -153,7 +152,7 @@ module.exports.getChampionByKey = async (req, res) => {
         }
     } else {
         const champion = await ChampionModel.findOne({ key: Number(key) })
-            .select('key default_name default_name_alt default_title image_icon image_splash image_load_screen roles')
+            .select('key default_name name_id default_title image_icon image_splash image_load_screen roles')
             .populate('roles', '-createdAt -updatedAt -__v');
 
         if (champion) {
@@ -165,9 +164,9 @@ module.exports.getChampionByKey = async (req, res) => {
         }
     }
 };
-module.exports.getChampionByDefaultName = async (req, res) => {
-    const default_name = req.params.name
-    if (!default_name) {
+module.exports.getChampionByNameId = async (req, res) => {
+    const name_id = req.params.name_id
+    if (!name_id) {
         res.status(400).json({
             message: "paramètre manquant"
         })
@@ -180,7 +179,7 @@ module.exports.getChampionByDefaultName = async (req, res) => {
                     message: "Langue non trouvée"
                 });
             }
-            const championTMP = await ChampionModel.findOne({ default_name: default_name })
+            const championTMP = await ChampionModel.findOne({ name_id: name_id })
             if (!championTMP) {
                 return res.status(400).json({
                     message: "Champion non trouvée"
@@ -190,10 +189,10 @@ module.exports.getChampionByDefaultName = async (req, res) => {
             const championTranslation = await ChampionLanguageModel.findOne({
                 language: language._id,
                 champion: championTMP._id
-            }, 'name name_alt title champion -_id')
+            }, 'name title champion -_id')
                 .populate({
                     path: 'champion',
-                    select: 'key image_icon image_splash image_load_screen roles',
+                    select: 'key name_id image_icon image_splash image_load_screen roles',
                     populate: {
                         path: 'roles',
                         select: '-createdAt -updatedAt -__v'
@@ -205,12 +204,10 @@ module.exports.getChampionByDefaultName = async (req, res) => {
                 });
             }
 
-            const { champion, name, name_alt, title, ...rest } = championTranslation.toObject();
-            console.log(champion);
+            const { champion, name, title, ...rest } = championTranslation.toObject();
             const adjustedResponse = {
                 _id: champion._id,
                 name,
-                name_alt,
                 title,
                 language_code: language.code,
                 ...champion,
@@ -225,14 +222,14 @@ module.exports.getChampionByDefaultName = async (req, res) => {
             });
         }
     } else {
-        const champion = await ChampionModel.findOne({ default_name: default_name })
-            .select('key default_name default_name_alt default_title image_icon image_splash image_load_screen roles')
+        const champion = await ChampionModel.findOne({ name_id: name_id })
+            .select('key default_name name_id default_title image_icon image_splash image_load_screen roles')
             .populate('roles', '-createdAt -__v -updatedAt');
         if (champion != null) {
-            res.status(200).json(champion)
+            res.status(200).json(champion);
         } else {
             res.status(400).json({
-                message: `Le champion ${default_name} n'existe pas`
+                message: `Le champion ${name_id} n'existe pas`
             })
         }
     }
@@ -247,21 +244,20 @@ module.exports.getChampions = async (req, res) => {
                     message: "Langue non trouvée"
                 });
             }
-            const championTranslations = await ChampionLanguageModel.find({ language: language._id }, 'name name_alt title champion -_id')
+            const championTranslations = await ChampionLanguageModel.find({ language: language._id }, 'name title champion -_id')
                 .populate({
                     path: 'champion',
-                    select: 'key image_icon image_splash image_load_screen roles',
+                    select: 'key name_id image_icon image_splash image_load_screen roles',
                     populate: {
                         path: 'roles',
                         select: '-createdAt -updatedAt -__v'
                     }
                 });
             const adjustedResponse = championTranslations.map(ct => {
-                const { champion, name, name_alt, title, _id, ...rest } = ct.toObject();
+                const { champion, name, title, _id, ...rest } = ct.toObject();
                 return {
                     _id: champion._id,
                     name,
-                    name_alt,
                     title,
                     language_code: language.code,
                     ...champion,
@@ -277,16 +273,37 @@ module.exports.getChampions = async (req, res) => {
         }
     } else {
         const champions = await ChampionModel.find({})
-            .select('key default_name default_name_alt default_title image_icon image_splash image_load_screen roles')
+            .select('key default_name name_id default_title image_icon image_splash image_load_screen roles')
             .populate('roles', '-createdAt -__v -updatedAt');
         res.status(200).json(champions)
     }
 
 }
+
+module.exports.getChampionsByRoleId = async (req, res) => {
+    const roleId = req.params.role_id
+    if (!roleId) {
+        res.status(400).json({
+            message: "paramètre manquant"
+        })
+    } else{
+        try{
+            const champions = await ChampionModel.find({ roles: roleId }, '-createdAt -updatedAt -__v').populate('roles', '-createdAt -updatedAt -__v');
+            res.status(200).json(champions)
+        } catch (err){
+            console.error(err);
+            res.status(500).json({
+                message:"Erreur"
+            })
+        }
+        
+    }
+}
+
 module.exports.addChampion = async (req, res) => {
-    console.log(req.body);
-    // console.log(!req.body.key && !req.body.default_name && !req.body.default_name_alt && !req.body.image_icon && !req.body.image_splash && !req.body.image_load_screen && !req.body.default_title && !req.body.color);
-    if (!req.body.key || !req.body.default_name || !req.body.default_name_alt || !req.body.image_icon || !req.body.image_splash || !req.body.image_load_screen || !req.body.default_title) {
+
+    // console.log(!req.body.key && !req.body.default_name && !req.body.name_id && !req.body.image_icon && !req.body.image_splash && !req.body.image_load_screen && !req.body.default_title && !req.body.color);
+    if (!req.body.key || !req.body.default_name || !req.body.name_id || !req.body.image_icon || !req.body.image_splash || !req.body.image_load_screen || !req.body.default_title) {
         res.status(400).json({
             message: "données manquantes"
         })
@@ -311,7 +328,7 @@ module.exports.addChampion = async (req, res) => {
             const champion = await ChampionModel.create({
                 key: Number(req.body.key),
                 default_name: req.body.default_name,
-                default_name_alt: req.body.default_name_alt,
+                name_id: req.body.name_id,
                 default_title: req.body.default_title,
                 image_icon: req.body.image_icon,
                 image_splash: req.body.image_splash,
@@ -447,12 +464,12 @@ module.exports.addRole = async (req, res) => {
         }
     }
 }
-// module.exports.tkt = async (req, res) => {
-//     try {
-//         await ChampionLanguageModel.deleteMany({});
-//         await ChampionModel.deleteMany({});
-//         console.log('Collection vidée avec succès.');
-//     } catch (err) {
-//         console.log('Erreur lors de la suppression des documents:', err);
-//     }
-// }
+module.exports.tkt = async (req, res) => {
+    try {
+        await ChampionLanguageModel.deleteMany({});
+        await ChampionModel.deleteMany({});
+        console.log('Collection vidée avec succès.');
+    } catch (err) {
+        console.log('Erreur lors de la suppression des documents:', err);
+    }
+}

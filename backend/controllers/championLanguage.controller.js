@@ -3,7 +3,7 @@ const LanguageModel = require("../models/language.model")
 const ChampionModel = require("../models/champion.model")
 
 module.exports.addChampionLanguage = async (req, res) => {
-    if (!req.body.name || !req.body.name_alt || !req.body.title || !req.body.language_id || !req.body.champion_id) {
+    if (!req.body.name || !req.body.title || !req.body.language_id || !req.body.champion_id) {
         res.status(400).json({
             message: "données manquantes"
         })
@@ -27,7 +27,6 @@ module.exports.addChampionLanguage = async (req, res) => {
         try {
             const championLanguage = await ChampionLanguageModel.create({
                 name: req.body.name,
-                name_alt: req.body.name_alt,
                 title: req.body.title,
                 language: req.body.language_id,
                 champion: req.body.champion_id

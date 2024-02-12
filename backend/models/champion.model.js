@@ -12,7 +12,7 @@ const championSchema = mongoose.Schema(
             required: true,
             unique: true
         },
-        "default_name_alt": {
+        "name_id": {
             type: String,
             required: true,
             unique: true
@@ -46,5 +46,6 @@ const championSchema = mongoose.Schema(
         timestamps: true
     }
 )
+
 
 module.exports = mongoose.model('champion', championSchema)

@@ -1,6 +1,7 @@
 const RoleModel = require("../models/role.model")
 const RoleLanguageModel = require("../models/roleLanguage.model")
 const LanguageModel = require("../models/language.model")
+const ChampionModel = require("../models/champion.model")
 
 function isUrlOk(url) {
     try {
@@ -130,7 +131,4 @@ module.exports.addRole = async (req, res) => {
             }
         }
     }
-}
-module.exports.getChampions = async (req, res) => {
-
 }

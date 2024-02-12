@@ -6,10 +6,6 @@ const championLanguageSchema = mongoose.Schema(
             type: String,
             required : true
         },
-        "name_alt": {
-            type: String,
-            required : true
-        },
         "title": {
             type: String,
             required : true
