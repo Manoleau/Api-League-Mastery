@@ -29,5 +29,5 @@ const championLanguageSchema = mongoose.Schema(
         timestamps: true
     }
 )
-
+championLanguageSchema.index({ "language": 1, "champion": 1 }, { "unique": true });
 module.exports = mongoose.model('champion_language', championLanguageSchema)
