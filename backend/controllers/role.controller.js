@@ -1,4 +1,6 @@
 const RoleModel = require("../models/role.model")
+const RoleLanguageModel = require("../models/roleLanguage.model")
+const LanguageModel = require("../models/language.model")
 
 function isUrlOk(url) {
     try {
@@ -36,7 +38,7 @@ module.exports.getRoleById = async (req,res) => {
         
     }
 }
-module.exports.setRole = async (req,res) => {
+module.exports.addRole = async (req,res) => {
     if(!req.body.default_name || !req.body.image_icon){
         res.status(400).json({ 
             message:"données manquantes"
@@ -65,4 +67,47 @@ module.exports.setRole = async (req,res) => {
             }
         }
     }
+}
+module.exports.getRolesByLanguage = async (req, res) => {
+    const language_code = req.params.language_code
+    if(!language_code){
+        res.status(400).json({ 
+            message:"paramètre manquant"
+        })
+    } else {
+        try {
+            const language = await LanguageModel.findOne({code : language_code}, 'name code')
+            if (!language) {
+                return res.status(400).json({
+                    message: "Langue non trouvée"
+                });
+            }
+            const roles = await RoleModel.find({},'image_icon')
+            const roleTranslations = await RoleLanguageModel.find({ language: language._id }, 'name role').populate('role', 'image_icon');
+            const translationsMap = roleTranslations.reduce((acc, curr) => {
+                acc[curr.role._id.toString()] = curr.name;
+                return acc;
+            }, {});
+            
+            const rolesWithTranslation = roles.map(role => {
+                return {
+                    ...role.toJSON(),
+                    translate_name: translationsMap[role._id.toString()] || "Pas de traduction",
+                    language_code: language_code
+                };
+            });
+            res.status(200).json(rolesWithTranslation);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({
+                message: "Erreur serveur"
+            });
+        }
+        
+    }
+}
+
+
+module.exports.getChampions = async (req, res) => {
+    
 }
