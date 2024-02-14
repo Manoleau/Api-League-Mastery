@@ -28,7 +28,7 @@ app.use("/admin/roles", apiKeyMiddleware, require("./routes/adminRole.routes"))
 app.use("/champions", require("./routes/champion.routes"))
 app.use("/languages", require("./routes/language.routes"))
 app.use("/roles", require("./routes/role.routes"))
-
+app.use("/summoners", require("./routes/summoner.routes"))
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
