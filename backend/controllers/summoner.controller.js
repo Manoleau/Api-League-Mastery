@@ -303,7 +303,7 @@ module.exports.getSummonerBySummId = async (req, res) => {
     } else {
         const summoner = await SummonerModel.findOne(
             { "summonerId": summId },
-            "-_id -createdAt -updatedAt -__v"
+            " -createdAt -updatedAt -__v"
         )
         if (!summoner) {
             return res.status(400).json({
@@ -322,7 +322,7 @@ module.exports.getSummonerBySummName = async (req, res) => {
     } else {
         const summoner = await SummonerModel.findOne(
             { "summonerName": summName },
-            "-_id -createdAt -updatedAt -__v"
+            " -createdAt -updatedAt -__v"
         )
         if (!summoner) {
             return res.status(400).json({
@@ -345,7 +345,7 @@ module.exports.getSummonerByRiot = async (req, res) => {
                 "riotName": name,
                 "tag": tag
             },
-            "-_id -createdAt -updatedAt -__v"
+            " -createdAt -updatedAt -__v"
         )
         if (!summoner) {
             var riotAcc = await getRiotAccByNameTag(name, tag, "EUW1")

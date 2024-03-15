@@ -36,7 +36,7 @@ module.exports.getChampionById = async (req, res) => {
             const championTranslation = await ChampionLanguageModel.findOne({
                 language: language._id,
                 champion: id
-            }, 'name title champion -_id')
+            }, 'name title champion ')
                 .populate({
                     path: 'champion',
                     select: 'key name_id image_icon image_splash image_load_screen roles',
@@ -118,7 +118,7 @@ module.exports.getChampionByKey = async (req, res) => {
             const championTranslation = await ChampionLanguageModel.findOne({
                 language: language._id,
                 champion: championTMP._id
-            }, 'name title champion -_id')
+            }, 'name title champion ')
                 .populate({
                     path: 'champion',
                     select: 'key name_id image_icon image_splash image_load_screen roles',
@@ -189,7 +189,7 @@ module.exports.getChampionByNameId = async (req, res) => {
             const championTranslation = await ChampionLanguageModel.findOne({
                 language: language._id,
                 champion: championTMP._id
-            }, 'name title champion -_id')
+            }, 'name title champion ')
                 .populate({
                     path: 'champion',
                     select: 'key name_id image_icon image_splash image_load_screen roles',
@@ -244,7 +244,7 @@ module.exports.getChampions = async (req, res) => {
                     message: "Langue non trouvée"
                 });
             }
-            const championTranslations = await ChampionLanguageModel.find({ language: language._id }, 'name title champion -_id')
+            const championTranslations = await ChampionLanguageModel.find({ language: language._id }, 'name title champion ')
                 .populate({
                     path: 'champion',
                     select: 'key name_id image_icon image_splash image_load_screen roles',
