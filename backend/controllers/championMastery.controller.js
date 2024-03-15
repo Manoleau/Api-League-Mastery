@@ -49,7 +49,7 @@ module.exports.addChampionMastery = async (req, res) => {
             message: "puuid du summoner manquant"
         })
     } else {
-        const summoner = await SummonerModel.findOne({puuid: puuid})
+        const summoner = await SummonerModel.findOne({puuid: puuid}, "-createdAt -updatedAt -__v")
         if (!summoner) {
             return res.status(400).json({
                 message: "Summoner Introuvable"
@@ -59,7 +59,7 @@ module.exports.addChampionMastery = async (req, res) => {
             const resultat = [];
             const champions = await getChampionMasterys(puuid, summoner.server)
             for (const champion of champions) {
-                const championBD = await ChampionModel.findOne({key: champion["championId"]})
+                const championBD = await ChampionModel.findOne({key: champion["championId"]}, "-createdAt -updatedAt -__v -roles")
 
                 const championMastery = await ChampionMasteryModel.create({
                     championLevel: champion["championLevel"],
@@ -70,7 +70,12 @@ module.exports.addChampionMastery = async (req, res) => {
                     summoner: summoner,
                     champion: championBD,
                 })
-                resultat.push(championMastery)
+                const result = championMastery.toObject();
+                delete result._id;
+                delete result.__v;
+                delete result.createdAt;
+                delete result.updatedAt;
+                resultat.push(result)
             }
             res.status(200).json(resultat)
         } catch (err) {

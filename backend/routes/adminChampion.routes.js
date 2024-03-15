@@ -1,12 +1,14 @@
 const express = require('express');
 const { addChampion, updateChampionById, addRole } = require('../controllers/champion.controller');
 const { addChampionLanguage } = require('../controllers/championLanguage.controller');
+const {addChampionMastery} = require("../controllers/championMastery.controller");
 const router = express.Router();
 
 
 // POST
 router.post("/", addChampion);
 router.post("/addLanguage/", addChampionLanguage)
+router.post("/addchampionsmasteries/:puuid", addChampionMastery);
 // PUT
 router.put("/:id", updateChampionById);
 
