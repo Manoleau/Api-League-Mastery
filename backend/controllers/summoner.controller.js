@@ -1,9 +1,20 @@
 const SummonerModel = require("../models/summoner.model")
 const servers = require("../config/servers.json")
+function getServer(serverCode) {
+    res = null
+    let i = 0;
+    while (res == null && i < servers.length) {
+        if (servers[i].code == serverCode) {
+            res = servers[i]
+        }
+        i++
+    }
+    return res
+}
 async function getSummById(summonerId, serverCode) {
     // Utilise import() pour charger dynamiquement node-fetch
     const fetch = await import('node-fetch').then(({ default: fetch }) => fetch);
-    const server = servers[serverCode]
+    const server = getServer(serverCode)
     try {
         const response = await fetch(`https://${server.link}/lol/summoner/v4/summoners/${summonerId}`, {
             method: 'GET',
@@ -31,7 +42,7 @@ async function getSummById(summonerId, serverCode) {
 async function getSummByName(summonerName, serverCode) {
     // Utilise import() pour charger dynamiquement node-fetch
     const fetch = await import('node-fetch').then(({ default: fetch }) => fetch);
-    const server = servers[serverCode]
+    const server = getServer(serverCode)
     try {
         const response = await fetch(`https://${server.link}/lol/summoner/v4/summoners/by-name/${summonerName}`, {
             method: 'GET',
@@ -60,7 +71,7 @@ async function getSummByName(summonerName, serverCode) {
 async function getSummByPuuid(puuid, serverCode) {
     // Utilise import() pour charger dynamiquement node-fetch
     const fetch = await import('node-fetch').then(({ default: fetch }) => fetch);
-    const server = servers[serverCode]
+    const server = getServer(serverCode)
     try {
         const response = await fetch(`https://${server.link}/lol/summoner/v4/summoners/by-puuid/${puuid}`, {
             method: 'GET',
@@ -89,7 +100,7 @@ async function getSummByPuuid(puuid, serverCode) {
 async function getRiotAccByPuuid(puuid, serverCode) {
     // Utilise import() pour charger dynamiquement node-fetch
     const fetch = await import('node-fetch').then(({ default: fetch }) => fetch);
-    const server = servers[serverCode]
+    const server = getServer(serverCode)
     try {
         const response = await fetch(`https://${server.region.link}/riot/account/v1/accounts/by-puuid/${puuid}`, {
             method: 'GET',
@@ -117,7 +128,7 @@ async function getRiotAccByPuuid(puuid, serverCode) {
 async function getRiotAccByNameTag(name, tag, serverCode) {
     // Utilise import() pour charger dynamiquement node-fetch
     const fetch = await import('node-fetch').then(({ default: fetch }) => fetch);
-    const server = servers[serverCode]
+    const server = getServer(serverCode)
     try {
         const response = await fetch(`https://${server.region.link}/riot/account/v1/accounts/by-riot-id/${name}/${tag}`, {
             method: 'GET',
@@ -284,13 +295,13 @@ module.exports.addSummonerByRiotAcc = async (req, res) => {
 
 module.exports.getSummonerBySummId = async (req, res) => {
     const summId = req.params.summoner_id;
-    if(!summId){
+    if (!summId) {
         req.status(400).json({
-            message:"id du summoner manquant"
+            message: "id du summoner manquant"
         })
     } else {
         const summoner = await SummonerModel.findOne(
-            {"summonerId":summId},
+            { "summonerId": summId },
             "-_id -createdAt -updatedAt -__v"
         )
         if (!summoner) {
@@ -303,13 +314,13 @@ module.exports.getSummonerBySummId = async (req, res) => {
 }
 module.exports.getSummonerBySummName = async (req, res) => {
     const summName = req.params.summoner_name;
-    if(!summName){
+    if (!summName) {
         req.status(400).json({
-            message:"nom du summoner manquant"
+            message: "nom du summoner manquant"
         })
     } else {
         const summoner = await SummonerModel.findOne(
-            {"summonerName":summName},
+            { "summonerName": summName },
             "-_id -createdAt -updatedAt -__v"
         )
         if (!summoner) {
@@ -323,22 +334,59 @@ module.exports.getSummonerBySummName = async (req, res) => {
 module.exports.getSummonerByRiot = async (req, res) => {
     const name = req.params.name;
     const tag = req.params.tag
-    if(!name || !tag){
+    if (!name || !tag) {
         req.status(400).json({
-            message:"données manquantes"
+            message: "données manquantes"
         })
     } else {
         const summoner = await SummonerModel.findOne(
             {
-                "riotName":name,
-                "tag":tag
+                "riotName": name,
+                "tag": tag
             },
             "-_id -createdAt -updatedAt -__v"
         )
         if (!summoner) {
-            return res.status(400).json({
-                message: "Summoner non trouvé"
-            });
+            var riotAcc = await getRiotAccByNameTag(name, tag, "EUW1")
+            let i = 1;
+            while (i < servers.length && !riotAcc.puuid) {
+                riotAcc = await getRiotAccByNameTag(name, tag, servers[i]);
+                i++;
+            }
+            if (riotAcc.puuid) {
+                const summoner = await getSummByPuuid(riotAcc.puuid, req.query.server)
+                summoner["riotName"] = riotAcc.gameName
+                summoner["tag"] = riotAcc.tagLine
+                try {
+                    const summonerM = await SummonerModel.create({
+                        summonerId: summoner.id,
+                        accountId: summoner.accountId,
+                        puuid: summoner.puuid,
+                        summonerName: summoner.name,
+                        riotName: summoner.riotName,
+                        tag: summoner.tag,
+                        server: req.query.server,
+                        profileIconId: Number(summoner.profileIconId),
+                        summonerLevel: Number(summoner.summonerLevel)
+                    })
+                    return res.status(200).json(summonerM)
+                } catch (err) {
+                    console.log(err);
+                    if (err.toString().includes("MongoServerError")) {
+                        return res.status(400).json({
+                            message: "Vous avez tenté de mettre une valeur qui existe déjà. Summoner non enregistré"
+                        })
+                    } else {
+                        return res.status(400).json({
+                            message: "Une erreur est survenue"
+                        })
+                    }
+                }
+            } else {
+                return res.status(400).json({
+                    message: "Summoner non trouvé"
+                });
+            }
         }
         res.status(200).json(summoner)
     }
