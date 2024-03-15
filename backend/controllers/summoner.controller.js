@@ -129,6 +129,7 @@ async function getRiotAccByNameTag(name, tag, serverCode) {
     // Utilise import() pour charger dynamiquement node-fetch
     const fetch = await import('node-fetch').then(({ default: fetch }) => fetch);
     const server = getServer(serverCode)
+    console.log(server);
     try {
         const response = await fetch(`https://${server.region.link}/riot/account/v1/accounts/by-riot-id/${name}/${tag}`, {
             method: 'GET',
@@ -339,7 +340,7 @@ module.exports.getSummonerByRiot = async (req, res) => {
             message: "données manquantes"
         })
     } else {
-        const summoner = await SummonerModel.findOne(
+        var summoner = await SummonerModel.findOne(
             {
                 "riotName": name,
                 "tag": tag
@@ -348,13 +349,13 @@ module.exports.getSummonerByRiot = async (req, res) => {
         )
         if (!summoner) {
             var riotAcc = await getRiotAccByNameTag(name, tag, "EUW1")
-            let i = 1;
+            var i = 1;
             while (i < servers.length && !riotAcc.puuid) {
                 riotAcc = await getRiotAccByNameTag(name, tag, servers[i]);
                 i++;
             }
             if (riotAcc.puuid) {
-                const summoner = await getSummByPuuid(riotAcc.puuid, req.query.server)
+                summoner = await getSummByPuuid(riotAcc.puuid, servers[i - 1].code)
                 summoner["riotName"] = riotAcc.gameName
                 summoner["tag"] = riotAcc.tagLine
                 try {
@@ -365,7 +366,7 @@ module.exports.getSummonerByRiot = async (req, res) => {
                         summonerName: summoner.name,
                         riotName: summoner.riotName,
                         tag: summoner.tag,
-                        server: req.query.server,
+                        server: servers[i - 1].code,
                         profileIconId: Number(summoner.profileIconId),
                         summonerLevel: Number(summoner.summonerLevel)
                     })
