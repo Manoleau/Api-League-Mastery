@@ -1,7 +1,7 @@
 const express = require('express');
 const { addChampion, updateChampionById, addRole } = require('../controllers/champion.controller');
 const { addChampionLanguage } = require('../controllers/championLanguage.controller');
-const {addChampionMastery} = require("../controllers/championMastery.controller");
+const {addChampionMastery, editChampionMastery} = require("../controllers/championMastery.controller");
 const router = express.Router();
 
 
@@ -11,6 +11,7 @@ router.post("/addLanguage/", addChampionLanguage)
 router.post("/addchampionsmasteries/:puuid", addChampionMastery);
 // PUT
 router.put("/:id", updateChampionById);
+router.put("/championsmasteries/:puuid", editChampionMastery);
 
 //PATCH
 router.patch("/:id", addRole);

@@ -253,3 +253,52 @@ module.exports.getChampionsMasteries = async (req, res) => {
         res.status(200).json(champions)
     }
 }
+
+
+module.exports.editChampionMastery = async (req, res) =>{
+    const puuid = req.params.puuid
+    if (!puuid) {
+        res.status(400).json({
+            message: "puuid du summoner manquant"
+        })
+    } else {
+        const summoner = await SummonerModel.findOne({puuid: puuid}, "-createdAt -updatedAt -__v")
+        if (!summoner) {
+            return res.status(400).json({
+                message: "Summoner Introuvable"
+            })
+        }
+        try{
+            const resultat = [];
+            const champions = await getChampionMasterys(puuid, summoner.server)
+            for (const champion of champions) {
+                const championBD = await ChampionModel.findOne({key: champion["championId"]}, "-createdAt -updatedAt -__v -roles")
+                const championMastery = await ChampionMasteryModel.find(
+                    {"summoner":summoner._id, "champion":championBD._id},
+                    "-createdAt -updatedAt -__v"
+                )
+                const updateChampionMastery = await ChampionMasteryModel.findByIdAndUpdate(
+                    championMastery,
+                    {
+                        championLevel: champion["championLevel"],
+                        championPoints: champion["championPoints"],
+                        championPointsSinceLastLevel: champion["championPointsSinceLastLevel"],
+                        championPointsUntilNextLevel: champion["championPointsUntilNextLevel"],
+                        chestGranted: champion["chestGranted"],
+                    },
+                    {new:true}
+                )
+                const result = updateChampionMastery.toObject();
+                delete result._id;
+                delete result.__v;
+                delete result.createdAt;
+                delete result.updatedAt;
+                resultat.push(result)
+            }
+            res.status(200).json(resultat)
+        } catch(err){
+            console.log(err);
+            res.status(500).json({message:"Une erreur est survenue"})
+        }
+    }
+}
