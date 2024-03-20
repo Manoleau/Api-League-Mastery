@@ -392,6 +392,33 @@ module.exports.getSummonerByRiot = async (req, res) => {
         res.status(200).json(summoner)
     }
 }
+
+
+module.exports.editSummoner = async (req, res) =>{
+    const puuid = req.params.puuid
+    if(!puuid){
+        return req.status(400).json({
+            message: "données manquantes"
+        })
+    } else {
+        const summoner = await SummonerModel.findOne(
+            {"puuid":puuid},
+            " -createdAt -updatedAt -__v"
+        )
+        if(!summoner){
+            return req.status(400).json({
+                message: "Summoner inexistant"
+            })
+        }
+        const newSummoner = await getSummByPuuid(puuid, summoner.server)
+        const updateSummoner = await SummonerModel.findByIdAndUpdate(
+            summoner,
+            newSummoner,
+            {new:true}
+        )
+        res.status(200).json(updateSummoner)
+    }
+}
 //  || !req.body.accountId || !req.body.puuid || !req.body.summonerName || !req.body.riotName || !req.body.tag || !req.body.profileIconId || !req.body.summonerLevel
 
 

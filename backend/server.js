@@ -21,6 +21,7 @@ const apiKeyMiddleware = (req, res, next) => {
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
+app.use("/admin/summoners", apiKeyMiddleware, require("./routes/adminSummoner.routes"))
 app.use("/admin/champions", apiKeyMiddleware, require("./routes/adminChampion.routes"))
 app.use("/admin/languages", apiKeyMiddleware, require("./routes/adminLanguage.routes"))
 app.use("/admin/roles", apiKeyMiddleware, require("./routes/adminRole.routes"))
