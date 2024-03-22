@@ -49,7 +49,7 @@ module.exports.addChampionMastery = async (req, res) => {
             message: "puuid du summoner manquant"
         })
     } else {
-        const summoner = await SummonerModel.findOne({puuid: puuid}, "-createdAt -updatedAt -__v")
+        const summoner = await SummonerModel.findOne({ puuid: puuid }, "-createdAt -updatedAt -__v")
         if (!summoner) {
             return res.status(400).json({
                 message: "Summoner Introuvable"
@@ -59,7 +59,7 @@ module.exports.addChampionMastery = async (req, res) => {
             const resultat = [];
             const champions = await getChampionMasterys(puuid, summoner.server)
             for (const champion of champions) {
-                const championBD = await ChampionModel.findOne({key: champion["championId"]}, "-createdAt -updatedAt -__v -roles")
+                const championBD = await ChampionModel.findOne({ key: champion["championId"] }, "-createdAt -updatedAt -__v -roles")
 
                 const championMastery = await ChampionMasteryModel.create({
                     championLevel: champion["championLevel"],
@@ -96,17 +96,17 @@ module.exports.getChampionsMasteries = async (req, res) => {
     const puuid = req.params.puuid;
     const champId = req.query.champion_id;
     const language_code = req.query.language_code;
-    if(!puuid){
+    if (!puuid) {
         req.status(400).json({
-            message:"id du summoner manquant"
+            message: "id du summoner manquant"
         })
-    } else if (champId && language_code){
-        try{
+    } else if (champId && language_code) {
+        try {
             const language = await LanguageModel.findOne({ code: language_code }, 'name code');
             if (!language) {
-                return res.status(400).json({message: "Langue non trouvée"});
+                return res.status(400).json({ message: "Langue non trouvée" });
             }
-            const champion = await ChampionModel.findOne({"key": champId}, "-createdAt -updatedAt -__v");
+            const champion = await ChampionModel.findOne({ "key": champId }, "-createdAt -updatedAt -__v");
             if (!champion) {
                 return res.status(400).json({ message: "Champion non trouvé" });
             }
@@ -114,12 +114,12 @@ module.exports.getChampionsMasteries = async (req, res) => {
                 "champion": champion._id,
                 "language": language._id
             }, "-createdAt -updatedAt -__v");
-    
+
             if (!championTranslation) {
                 return res.status(404).json({ message: "Traduction du champion non trouvée pour la langue spécifiée" });
             }
-    
-            const summoner = await SummonerModel.findOne({"puuid": puuid}, "-createdAt -updatedAt -__v");
+
+            const summoner = await SummonerModel.findOne({ "puuid": puuid }, "-createdAt -updatedAt -__v");
             if (!summoner) {
                 return res.status(400).json({ message: "Summoner non trouvé" });
             }
@@ -127,14 +127,14 @@ module.exports.getChampionsMasteries = async (req, res) => {
                 "summoner": summoner._id,
                 "champion": champion._id
             }, "-createdAt -updatedAt -__v -_id")
-            .populate({
-                path: 'champion',
-                select: '-createdAt -updatedAt -__v -roles -default_name -default_title',
-            })
-            .populate({
-                path: 'summoner',
-                select: '-createdAt -updatedAt -__v',
-            });
+                .populate({
+                    path: 'champion',
+                    select: '-createdAt -updatedAt -__v -roles -default_name -default_title',
+                })
+                .populate({
+                    path: 'summoner',
+                    select: '-createdAt -updatedAt -__v',
+                });
             if (championMastery) {
                 let response = championMastery.toObject(); // Convertir en objet JS pour manipulation
                 response.champion.name = championTranslation.name; // Remplacer par nom traduit
@@ -144,38 +144,38 @@ module.exports.getChampionsMasteries = async (req, res) => {
             } else {
                 res.status(200).json({});
             }
-        } catch(err){
-            res.status(400).json({"message":"une erreur est survenue"});
+        } catch (err) {
+            res.status(400).json({ "message": "une erreur est survenue" });
 
         }
-        
-    } else if(language_code){
+
+    } else if (language_code) {
         const language = await LanguageModel.findOne({ code: language_code }, 'name code');
         if (!language) {
-            return res.status(400).json({message: "Langue non trouvée"});
+            return res.status(400).json({ message: "Langue non trouvée" });
         }
         const championsTranslation = await ChampionLanguageModel.find({
             "language": language._id
         }, "-createdAt -updatedAt -__v");
-        const summoner = await SummonerModel.findOne({"puuid": puuid}, "-createdAt -updatedAt -__v");
+        const summoner = await SummonerModel.findOne({ "puuid": puuid }, "-createdAt -updatedAt -__v");
         if (!summoner) {
             return res.status(400).json({ message: "Summoner non trouvé" });
         }
         const championsMastery = await ChampionMasteryModel.find({
             "summoner": summoner._id,
         }, "-createdAt -updatedAt -__v -_id")
-        .populate({
-            path: 'champion',
-            select: '-createdAt -updatedAt -__v -roles -default_name -default_title',
-        })
-        .populate({
-            path: 'summoner',
-            select: '-createdAt -updatedAt -__v',
-        });
-        if(championsMastery.length > 0){
-            for(let i = 0; i<championsMastery.length;i++){
+            .populate({
+                path: 'champion',
+                select: '-createdAt -updatedAt -__v -roles -default_name -default_title',
+            })
+            .populate({
+                path: 'summoner',
+                select: '-createdAt -updatedAt -__v',
+            });
+        if (championsMastery.length > 0) {
+            for (let i = 0; i < championsMastery.length; i++) {
                 let j = i;
-                while(championsMastery[i].champion._id.toString() !== championsTranslation[j].champion.toString()){
+                while (championsMastery[i].champion._id.toString() !== championsTranslation[j].champion.toString()) {
                     j++;
                 }
                 const response = championsMastery[i].toObject();
@@ -184,8 +184,8 @@ module.exports.getChampionsMasteries = async (req, res) => {
                 response.champion.language_code = language_code
                 championsMastery[i] = response
             }
-            for(let i = 0; i<championsMastery.length;i++){
-                if (championsMastery[i].champion.name == null){
+            for (let i = 0; i < championsMastery.length; i++) {
+                if (championsMastery[i].champion.name == null) {
                     console.log("GGEZ");
                 }
             }
@@ -193,9 +193,9 @@ module.exports.getChampionsMasteries = async (req, res) => {
         } else {
             res.status(200).json({});
         }
-    } else if(champId){
+    } else if (champId) {
         const summoner = await SummonerModel.findOne(
-            {"puuid":puuid},
+            { "puuid": puuid },
             "-createdAt -updatedAt -__v"
         )
         if (!summoner) {
@@ -204,7 +204,7 @@ module.exports.getChampionsMasteries = async (req, res) => {
             });
         }
         const champion = await ChampionModel.findOne(
-            {"key":champId},
+            { "key": champId },
             "-createdAt -updatedAt -__v"
         )
         if (!champion) {
@@ -213,18 +213,18 @@ module.exports.getChampionsMasteries = async (req, res) => {
             });
         }
         const championM = await ChampionMasteryModel
-            .findOne({"summoner":summoner._id, "champion":champion._id},"-createdAt -updatedAt -__v -_id")
+            .findOne({ "summoner": summoner._id, "champion": champion._id }, "-createdAt -updatedAt -__v -_id")
             .populate("champion", " -createdAt -updatedAt -__v -roles")
-            .populate("summoner"," -createdAt -updatedAt -__v -roles")
+            .populate("summoner", " -createdAt -updatedAt -__v -roles")
 
-        if(championM){
+        if (championM) {
             res.status(200).json(championM)
         } else {
             res.status(200).json({})
         }
-    } else{
+    } else {
         const summoner = await SummonerModel.findOne(
-            {"puuid":puuid},
+            { "puuid": puuid },
             "-createdAt -updatedAt -__v"
         )
         if (!summoner) {
@@ -233,7 +233,7 @@ module.exports.getChampionsMasteries = async (req, res) => {
             });
         }
         const champions = await ChampionMasteryModel
-            .find({"summoner":summoner._id}, " -createdAt -updatedAt -__v -_id")
+            .find({ "summoner": summoner._id }, " -createdAt -updatedAt -__v -_id")
             .populate("champion", " -createdAt -updatedAt -__v -roles")
             .populate("summoner", "-createdAt -updatedAt -__v")
         // const response = {
@@ -255,26 +255,26 @@ module.exports.getChampionsMasteries = async (req, res) => {
 }
 
 
-module.exports.editChampionMastery = async (req, res) =>{
+module.exports.editChampionMastery = async (req, res) => {
     const puuid = req.params.puuid
     if (!puuid) {
         res.status(400).json({
             message: "puuid du summoner manquant"
         })
     } else {
-        const summoner = await SummonerModel.findOne({puuid: puuid}, "-createdAt -updatedAt -__v")
+        const summoner = await SummonerModel.findOne({ puuid: puuid }, "-createdAt -updatedAt -__v")
         if (!summoner) {
             return res.status(400).json({
                 message: "Summoner Introuvable"
             })
         }
-        try{
+        try {
             const resultat = [];
             const champions = await getChampionMasterys(puuid, summoner.server)
             for (const champion of champions) {
-                const championBD = await ChampionModel.findOne({key: champion["championId"]}, "-createdAt -updatedAt -__v -roles")
+                const championBD = await ChampionModel.findOne({ key: champion["championId"] }, "-createdAt -updatedAt -__v -roles")
                 const championMastery = await ChampionMasteryModel.find(
-                    {"summoner":summoner._id, "champion":championBD._id},
+                    { "summoner": summoner._id, "champion": championBD._id },
                     "-createdAt -updatedAt -__v"
                 )
                 const updateChampionMastery = await ChampionMasteryModel.findByIdAndUpdate(
@@ -286,19 +286,21 @@ module.exports.editChampionMastery = async (req, res) =>{
                         championPointsUntilNextLevel: champion["championPointsUntilNextLevel"],
                         chestGranted: champion["chestGranted"],
                     },
-                    {new:true}
+                    { new: true }
                 )
                 const result = updateChampionMastery.toObject();
                 delete result._id;
                 delete result.__v;
                 delete result.createdAt;
                 delete result.updatedAt;
+                delete result.summoner;
+                delete result.champion;
                 resultat.push(result)
             }
             res.status(200).json(resultat)
-        } catch(err){
+        } catch (err) {
             console.log(err);
-            res.status(500).json({message:"Une erreur est survenue"})
+            res.status(500).json({ message: "Une erreur est survenue" })
         }
     }
 }
