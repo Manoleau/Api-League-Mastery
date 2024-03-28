@@ -392,20 +392,78 @@ module.exports.getSummonerByRiot = async (req, res) => {
         res.status(200).json(summoner)
     }
 }
+module.exports.getSummonerByPuuid = async (req, res) => {
+    const puuid = req.params.puuid;
+    if (!puuid) {
+        req.status(400).json({
+            message: "données manquantes"
+        })
+    } else {
+        var summoner = await SummonerModel.findOne(
+            {
+                "puuid": puuid,
+            },
+            " -createdAt -updatedAt -__v"
+        )
+        if (!summoner) {
+            var riotAcc = await getRiotAccByPuuid(puuid, "EUW1")
+            var i = 1;
+            while (i < servers.length && !riotAcc.puuid) {
+                riotAcc = await getRiotAccByPuuid(puuid, servers[i]);
+                i++;
+            }
+            if (riotAcc.puuid) {
+                summoner = await getSummByPuuid(riotAcc.puuid, servers[i - 1].code)
+                summoner["riotName"] = riotAcc.gameName
+                summoner["tag"] = riotAcc.tagLine
+                try {
+                    const summonerM = await SummonerModel.create({
+                        summonerId: summoner.id,
+                        accountId: summoner.accountId,
+                        puuid: summoner.puuid,
+                        summonerName: summoner.name,
+                        riotName: summoner.riotName,
+                        tag: summoner.tag,
+                        server: servers[i - 1].code,
+                        profileIconId: Number(summoner.profileIconId),
+                        summonerLevel: Number(summoner.summonerLevel)
+                    })
+                    return res.status(200).json(summonerM)
+                } catch (err) {
+                    console.log(err);
+                    if (err.toString().includes("MongoServerError")) {
+                        return res.status(400).json({
+                            message: "Vous avez tenté de mettre une valeur qui existe déjà. Summoner non enregistré"
+                        })
+                    } else {
+                        return res.status(400).json({
+                            message: "Une erreur est survenue"
+                        })
+                    }
+                }
+            } else {
+                return res.status(400).json({
+                    message: "Summoner non trouvé"
+                });
+            }
+        }
+        res.status(200).json(summoner)
+    }
+}
 
 
-module.exports.editSummoner = async (req, res) =>{
+module.exports.editSummoner = async (req, res) => {
     const puuid = req.params.puuid
-    if(!puuid){
+    if (!puuid) {
         return req.status(400).json({
             message: "données manquantes"
         })
     } else {
         const summoner = await SummonerModel.findOne(
-            {"puuid":puuid},
+            { "puuid": puuid },
             " -createdAt -updatedAt -__v"
         )
-        if(!summoner){
+        if (!summoner) {
             return req.status(400).json({
                 message: "Summoner inexistant"
             })
@@ -416,7 +474,7 @@ module.exports.editSummoner = async (req, res) =>{
         const updateSummoner = await SummonerModel.findByIdAndUpdate(
             summoner,
             newSummoner,
-            {new:true}
+            { new: true }
         )
         res.status(200).json(updateSummoner)
     }
