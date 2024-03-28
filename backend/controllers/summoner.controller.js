@@ -470,11 +470,13 @@ module.exports.editSummoner = async (req, res) => {
         }
         const newSummoner = await getSummByPuuid(puuid, summoner.server)
         const riotAcc = await getRiotAccByPuuid(puuid, summoner.server)
-        const result = newSummoner.toObject();
-        console.log(result);
+        // const result = newSummoner.toObject();
+        //result["riotName"] = riotAcc.gameName
+        //result["tag"] = riotAcc.tagLine
+        console.log(newSummoner);
         const updateSummoner = await SummonerModel.findByIdAndUpdate(
             summoner,
-            result,
+            newSummoner,
             { new: true }
         )
         res.status(200).json(updateSummoner)
