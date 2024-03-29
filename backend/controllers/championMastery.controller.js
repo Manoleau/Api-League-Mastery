@@ -254,53 +254,51 @@ module.exports.getChampionsMasteries = async (req, res) => {
     }
 }
 
-
 module.exports.editChampionMastery = async (req, res) => {
-    const puuid = req.params.puuid
+    const puuid = req.params.puuid;
     if (!puuid) {
-        res.status(400).json({
-            message: "puuid du summoner manquant"
-        })
-    } else {
-        const summoner = await SummonerModel.findOne({ puuid: puuid }, "-createdAt -updatedAt -__v")
-        if (!summoner) {
-            return res.status(400).json({
-                message: "Summoner Introuvable"
-            })
-        }
-        try {
-            const resultat = [];
-            const champions = await getChampionMasterys(puuid, summoner.server)
-            for (const champion of champions) {
-                const championBD = await ChampionModel.findOne({ key: champion["championId"] }, "-createdAt -updatedAt -__v -roles")
-                const championMastery = await ChampionMasteryModel.find(
-                    { "summoner": summoner._id, "champion": championBD._id },
-                    "-createdAt -updatedAt -__v"
-                )
-                const updateChampionMastery = await ChampionMasteryModel.findByIdAndUpdate(
-                    championMastery,
-                    {
-                        championLevel: champion["championLevel"],
-                        championPoints: champion["championPoints"],
-                        championPointsSinceLastLevel: champion["championPointsSinceLastLevel"],
-                        championPointsUntilNextLevel: champion["championPointsUntilNextLevel"],
-                        chestGranted: champion["chestGranted"],
-                    },
-                    { new: true }
-                )
-                const result = updateChampionMastery.toObject();
-                delete result._id;
-                delete result.__v;
-                delete result.createdAt;
-                delete result.updatedAt;
-                delete result.summoner;
-                delete result.champion;
-                resultat.push(result)
-            }
-            res.status(200).json(resultat)
-        } catch (err) {
-            console.log(err);
-            res.status(500).json({ message: "Une erreur est survenue" })
-        }
+        return res.status(400).json({ message: "puuid du summoner manquant" });
     }
-}
+    
+    try {
+        const summoner = await SummonerModel.findOne({ puuid: puuid }, "-createdAt -updatedAt -__v");
+        if (!summoner) {
+            return res.status(400).json({ message: "Summoner Introuvable" });
+        }
+
+        const champions = await getChampionMasterys(puuid, summoner.server);
+        const championKeys = champions.map(champion => champion.championId);
+        const championsBD = await ChampionModel.find({ key: { $in: championKeys } }, "_id key");
+        
+        // Mapping pour accéder rapidement à l'ID du championBD à partir de championId
+        const championIdToBDId = championsBD.reduce((acc, curr) => {
+            acc[curr.key] = curr._id;
+            return acc;
+        }, {});
+
+        const operations = champions.map(champion => ({
+            updateOne: {
+                filter: { summoner: summoner._id, champion: championIdToBDId[champion.championId] },
+                update: {
+                    $set: {
+                        championLevel: champion.championLevel,
+                        championPoints: champion.championPoints,
+                        championPointsSinceLastLevel: champion.championPointsSinceLastLevel,
+                        championPointsUntilNextLevel: champion.championPointsUntilNextLevel,
+                        chestGranted: champion.chestGranted,
+                    },
+                },
+                upsert: true, // Crée le document s'il n'existe pas
+            },
+        }));
+
+        await ChampionMasteryModel.bulkWrite(operations);
+
+        // La réponse peut être ajustée selon les besoins, ici on renvoie juste un message de succès
+        res.status(200).json({ message: "Mise à jour réussie" });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Une erreur est survenue" });
+    }
+};
+
