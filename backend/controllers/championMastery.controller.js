@@ -295,7 +295,7 @@ module.exports.editChampionMastery = async (req, res) => {
         await ChampionMasteryModel.bulkWrite(operations);
 
         // La réponse peut être ajustée selon les besoins, ici on renvoie juste un message de succès
-        res.status(200).json({ message: "Mise à jour réussie" });
+        res.status(200).json([]);
     } catch (err) {
         console.log(err);
         res.status(500).json({ message: "Une erreur est survenue" });
