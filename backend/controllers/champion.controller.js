@@ -301,7 +301,6 @@ module.exports.getChampionsByRoleId = async (req, res) => {
 }
 
 module.exports.addChampion = async (req, res) => {
-
     // console.log(!req.body.key && !req.body.default_name && !req.body.name_id && !req.body.image_icon && !req.body.image_splash && !req.body.image_load_screen && !req.body.default_title && !req.body.color);
     if (!req.body.key || !req.body.default_name || !req.body.name_id || !req.body.image_icon || !req.body.image_splash || !req.body.image_load_screen || !req.body.default_title) {
         res.status(400).json({

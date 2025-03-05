@@ -30,12 +30,12 @@ const championSchema = mongoose.Schema(
         "image_splash": {
             type: String,
             required: true,
-            unique: true
+            unique: false
         },
         "image_load_screen": {
             type: String,
             required: true,
-            unique: true
+            unique: false
         },
         "roles": {
             type: [mongoose.Schema.Types.ObjectId],

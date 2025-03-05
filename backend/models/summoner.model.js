@@ -18,10 +18,6 @@ const summonerSchema = mongoose.Schema(
             type: String,
             required: true
         },
-        "summonerName": {
-            type: String,
-            required: true
-        },
         "riotName": {
             type: String,
             required: true

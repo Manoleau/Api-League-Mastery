@@ -16,8 +16,6 @@ router.put("/championsmasteries/:puuid", editChampionMastery);
 //PATCH
 router.patch("/:id", addRole);
 
-
-
 // router.delete("/by_id/:id", deleteChampionById)
 // router.delete("/by_key/:key", deleteChampionByKey)
 // router.delete("/tkt", tkt)

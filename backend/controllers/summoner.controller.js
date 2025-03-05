@@ -52,7 +52,6 @@ async function getSummByName(summonerName, serverCode) {
         });
 
         if (!response.ok) {
-            console.log(response);
             return {
                 message: "Summoner Introuvable",
                 status: response.status
@@ -81,7 +80,6 @@ async function getSummByPuuid(puuid, serverCode) {
         });
 
         if (!response.ok) {
-            console.log(response);
             return {
                 message: "Summoner Introuvable",
                 status: response.status
@@ -129,7 +127,6 @@ async function getRiotAccByNameTag(name, tag, serverCode) {
     // Utilise import() pour charger dynamiquement node-fetch
     const fetch = await import('node-fetch').then(({ default: fetch }) => fetch);
     const server = getServer(serverCode)
-    console.log(server);
     try {
         const response = await fetch(`https://${server.region.link}/riot/account/v1/accounts/by-riot-id/${name}/${tag}`, {
             method: 'GET',
@@ -145,8 +142,7 @@ async function getRiotAccByNameTag(name, tag, serverCode) {
             };
         }
 
-        const data = await response.json();
-        return data;
+        return await response.json();
     } catch (error) {
         console.error('Erreur lors de la requête:', error);
         return {
@@ -363,7 +359,6 @@ module.exports.getSummonerByRiot = async (req, res) => {
                         summonerId: summoner.id,
                         accountId: summoner.accountId,
                         puuid: summoner.puuid,
-                        summonerName: summoner.name,
                         riotName: summoner.riotName,
                         tag: summoner.tag,
                         server: servers[i - 1].code,
@@ -473,7 +468,6 @@ module.exports.editSummoner = async (req, res) => {
        
         newSummoner["riotName"] = riotAcc.gameName
         newSummoner["tag"] = riotAcc.tagLine
-        console.log(newSummoner);
         const updateSummoner = await SummonerModel.findByIdAndUpdate(
             summoner,
             newSummoner,
