@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const PORT = 3000;
+const port = process.env.PORT || 3000;
 
 const connectDB = require("./config/db")
 require('dotenv').config()
@@ -35,6 +35,6 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Quelque chose s\'est mal passé!');
 });
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
